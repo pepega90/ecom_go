@@ -1,6 +1,7 @@
 package main
 
 import (
+	"ecom_go/config"
 	"ecom_go/handler"
 	"ecom_go/middlewares"
 	"ecom_go/utils"
@@ -10,6 +11,9 @@ import (
 )
 
 func main() {
+	// init midtrans
+	config.SetupMidtransKeyAccess()
+
 	app := fiber.New()
 
 	// db
@@ -36,6 +40,8 @@ func main() {
 	app.Get("/user", userHandler.GetCurrentUser)
 
 	// products
+	app.Get("/products", productHandler.GetAllProducts)
+	app.Get("/products/:id", productHandler.GetProduct)
 	app.Post("/products", productHandler.CreateProduct)
 	app.Delete("/products/:id", productHandler.DeleteProduct)
 
@@ -45,6 +51,8 @@ func main() {
 	app.Delete("/carts/:id", cartHandler.DeleteCart)
 
 	// orders
+	app.Get("/orders", orderHandler.GetAllOrders)
+	app.Get("/create-snap-token", orderHandler.CreateSNAP)
 	app.Post("/create-order", orderHandler.CreateOrder)
 	app.Delete("/hapus-order/:id", orderHandler.DeleteOrder)
 

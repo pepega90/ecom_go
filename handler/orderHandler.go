@@ -8,6 +8,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/midtrans/midtrans-go"
+	"github.com/midtrans/midtrans-go/coreapi"
 	"github.com/midtrans/midtrans-go/example"
 	"github.com/midtrans/midtrans-go/snap"
 	"gorm.io/gorm"
@@ -106,6 +107,7 @@ func (o *orderHandler) CreateOrder(c *fiber.Ctx) error {
 
 	order := orders.Order{
 		Total:       int(orderDto.GrossAmt),
+		TransaksiID: orderDto.OrderID,
 		PaymentType: orderDto.PaymentType,
 		VaNumber:    orderDto.VaNumber,
 		PdfUrl:      orderDto.PdfUrl,
@@ -138,4 +140,28 @@ func (o *orderHandler) DeleteOrder(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Berhasil menghapus order",
 	})
+}
+
+func (o *orderHandler) CheckOrder(c *fiber.Ctx) error {
+	s := coreapi.Client{}
+	s.New(midtrans.ServerKey, midtrans.Sandbox)
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"message": err,
+		})
+	}
+
+	var order orders.Order
+	order.ID = uint(id)
+	o.db.Find(&order)
+
+	res, _ := s.CheckTransaction(order.TransaksiID)
+
+	if res.StatusCode == "200" {
+		order.StatusCode = "200"
+		o.db.Save(&order)
+	}
+
+	return c.Status(fiber.StatusOK).JSON(res)
 }

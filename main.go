@@ -54,6 +54,7 @@ func main() {
 	app.Get("/orders", orderHandler.GetAllOrders)
 	app.Get("/create-snap-token", orderHandler.CreateSNAP)
 	app.Post("/create-order", orderHandler.CreateOrder)
+	app.Get("/check-order/:id", orderHandler.CheckOrder)
 	app.Delete("/hapus-order/:id", orderHandler.DeleteOrder)
 
 	// start server

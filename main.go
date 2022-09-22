@@ -1,62 +1,53 @@
 package main
 
 import (
-	"ecom_go/config"
-	"ecom_go/handler"
-	"ecom_go/middlewares"
-	"ecom_go/utils"
+	"ecom_go/helpers"
+	"ecom_go/middleware"
+
+	cartItemRepo "ecom_go/internal/repositories/cartItem"
+	orderRepo "ecom_go/internal/repositories/order"
+	productRepo "ecom_go/internal/repositories/product"
+	userRepo "ecom_go/internal/repositories/user"
+
+	useCase "ecom_go/internal/core/usecases"
+	cartHandler "ecom_go/internal/handlers/cart"
+	cartItemHandler "ecom_go/internal/handlers/cartItem"
+	orderHandler "ecom_go/internal/handlers/order"
+	productHandler "ecom_go/internal/handlers/product"
+	userHandler "ecom_go/internal/handlers/user"
+	cartRepo "ecom_go/internal/repositories/cart"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 func main() {
-	// init midtrans
-	config.SetupMidtransKeyAccess()
-
 	app := fiber.New()
 
-	// db
-	db := utils.SetupDB()
+	db := helpers.SetupDB()
 
-	// settings cors
 	app.Use(cors.New(cors.Config{
 		AllowCredentials: true,
 	}))
-
+	// repository
+	userRepository := userRepo.NewUserGormRepo(db)
+	productRepository := productRepo.NewProductGormRepo(db)
+	cartItemRepository := cartItemRepo.NewCartItemGormRepo(db)
+	cartRepository := cartRepo.NewCartGormRepo(db)
+	orderRepository := orderRepo.NewOrderGormRepo(db)
+	// usecases/service
+	userUC := useCase.NewUserUseCase(userRepository)
+	app.Use(middleware.IsAuthenticated)
+	prodUC := useCase.NewProductUseCase(productRepository)
+	cartItemUC := useCase.NewCartItemUseCase(cartItemRepository)
+	cartUC := useCase.NewCartUseCase(cartRepository)
+	orderUC := useCase.NewOrderUseCase(orderRepository)
 	// handler
-	userHandler := handler.NewUserHandler(db)
-	productHandler := handler.NewProductHandler(db)
-	cartHandler := handler.NewCartHandler(db)
-	cartItemHandler := handler.NewCartItemHandler(db)
-	orderHandler := handler.NewOrderHandler(db)
+	userHandler.NewUserHandler(userUC, app)
+	productHandler.NewProductHandler(prodUC, app)
+	cartItemHandler.NewCartItemHandler(cartItemUC, app)
+	cartHandler.NewCartHandler(cartUC, app)
+	orderHandler.NewOrderHandler(orderUC, app)
 
-	// routes
-	// users route
-	app.Post("/register", userHandler.Register)
-	app.Post("/login", userHandler.Login)
-	app.Use(middlewares.IsAuthenticated)
-	app.Post("/logout", userHandler.Logout)
-	app.Get("/user", userHandler.GetCurrentUser)
-
-	// products
-	app.Get("/products", productHandler.GetAllProducts)
-	app.Get("/products/:id", productHandler.GetProduct)
-	app.Post("/products", productHandler.CreateProduct)
-	app.Delete("/products/:id", productHandler.DeleteProduct)
-
-	// carts
-	app.Post("/cart-item", cartItemHandler.CreateCartItem)
-	app.Post("/carts", cartHandler.AddToCart)
-	app.Delete("/carts/:id", cartHandler.DeleteCart)
-
-	// orders
-	app.Get("/orders", orderHandler.GetAllOrders)
-	app.Get("/create-snap-token", orderHandler.CreateSNAP)
-	app.Post("/create-order", orderHandler.CreateOrder)
-	app.Get("/check-order/:id", orderHandler.CheckOrder)
-	app.Delete("/hapus-order/:id", orderHandler.DeleteOrder)
-
-	// start server
 	app.Listen(":8080")
 }
